@@ -4,11 +4,15 @@ import re
 import json
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 LIST_URL = "https://khlongluang.go.th/public/list/data/index/menu/1554"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-SEEN_FILE = "seen_ids.json"
-NOTICES_FILE = "water_notices.jsonl" # append-only log
+SEEN_FILE = os.getenv("SEEN_FILE", "seen_ids.json")
+NOTICES_FILE = os.getenv("NOTICES_FILE", "water_notices.jsonl")  # append-only log
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 
 WATER_OUTAGE_KEYWORDS = [
     "ปิดน้ำ", "งดจ่ายน้ำ", "หยุดจ่ายน้ำ",
@@ -60,6 +64,31 @@ def is_water_outage(text):
     return any(kw in text for kw in WATER_OUTAGE_KEYWORDS)
 
 
+def send_discord_notification(notice):
+    if not DISCORD_WEBHOOK_URL:
+        return
+    payload = {
+        "embeds": [
+            {
+                "title": "ประกาศน้ำประปา",
+                "description": notice["title"],
+                "url": notice["url"],
+                "color": 0xE67E22,  # orange
+                "fields": [
+                    {"name": "ลิงก์", "value": notice["url"], "inline": False},
+                ],
+                "footer": {"text": "คลองหลวง อปท. • อัตโนมัติ"},
+                "timestamp": notice["fetched_at"],
+            }
+        ]
+    }
+    try:
+        resp = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=10)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        print(f"[discord] failed to send notification: {e}")
+
+
 def run():
     seen = load_seen_ids()
     posts = fetch_list()
@@ -73,6 +102,7 @@ def run():
         if is_water_outage(post["title"]):
             notice = {**post, "fetched_at": datetime.now().isoformat()}
             append_notice(notice)
+            send_discord_notification(notice)
             new_notices.append(notice)
 
     save_seen_ids(seen)
