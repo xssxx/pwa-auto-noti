@@ -20,3 +20,6 @@ alert so you don't have to check manually.
 - JSONL for append-only notice logging
 - Discord webhook for push notifications
 - Cron for scheduling
+
+## Example
+<img width="766" height="279" alt="image" src="https://github.com/user-attachments/assets/00311dd9-ac2a-4053-822b-605bee47266e" />
