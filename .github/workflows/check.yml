@@ -2,7 +2,7 @@ name: Check water notices
 
 on:
   schedule:
-    - cron: "0 * * * *"   # every hour
+    - cron: "0 8,20 * * *"   # 8 โมง, 2 ทุ่ม
   workflow_dispatch:        # allow manual trigger from GitHub UI
 
 permissions:
